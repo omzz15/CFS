@@ -17,50 +17,17 @@ void add_task(scheduler_t *scheduler, task_t *task) {
 }
 
 void run_task(scheduler_t *scheduler){
-    
+    rb_delete()
 }
 
-char tasks_left(scheduler_t* scheduler){
-    return scheduler->tree->count > 0;
+int tasks_left(scheduler_t* scheduler){
+    return scheduler->tree->count;
 }
 
 struct tracker {
     float total;
     unsigned int num;
 };
-
-/**
-list<Process> rr(pqueue_arrival workload) {
-  list<Process> complete;
-  pqueue_arrival xs = workload;
-  int time = 0;
-  //First run
-  std::queue<Process> newWorkload;
-  newWorkload.push(xs.top());
-  xs.pop();
-  while(!(newWorkload.empty()) || !(xs.empty())){ //xs.empty used in case still elements left. 
-    while((!(xs.empty()) && xs.top().arrival <= time) || newWorkload.empty()){
-      newWorkload.push(xs.top());
-      xs.pop();
-    }
-    Process p = newWorkload.front();
-    if (time < p.arrival){time = p.arrival;}
-    int duration = p.duration;
-    if (p.first_run == -1) {p.first_run = time;}
-    time += 1;
-    p.duration = duration - 1;
-    if (p.duration == 0) {
-      p.completion = time;
-      complete.push_back(p);
-    }
-    else{
-      newWorkload.push(p);
-    }
-    newWorkload.pop();
-  }
-  return complete;
-}
-*/
 
 void sum_turnaround(task_t *task, struct tracker* tracker){
     tracker->num++;
@@ -91,9 +58,9 @@ void show_metrics(scheduler_t* scheduler){
   printf("Average Response Time: %f \n", avg_r);
 }
 
-// RB Tree 
-void calculate_virtual_runtime(task_t* task){
-    task->v_runtime  += (task->tasduration * task->nice) / nice_to_weight(nice);
+void update_runtime(task_t* task, float dt){
+    task->v_runtime  += (dt * NICE_0) / nice_to_weight(task->nice);
+    task->metrics.duration += dt;
 }
 
 

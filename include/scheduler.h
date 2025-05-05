@@ -16,6 +16,7 @@ const int nice_array[40] = {
 }; //Used for conversion of nice values to weights. Must add 20 to nice values to get correct index
 
 #define nice_to_weight(nice) nice_array[nice + 20]
+#define NICE_0 1024
 
 // code idea for using red black tree?
 typedef struct scheduler{
@@ -29,12 +30,10 @@ void destroy(scheduler_t *scheduler);
 void add_task(scheduler_t *scheduler, task_t *task);
 
 void run_task();
-char tasks_left(scheduler_t* scheduler);
+int tasks_left(scheduler_t* scheduler);
 
-void sum_turnaround(task_t *task, struct tracker* tracker); //helper for avg_turnaround
 float avg_turnaround(scheduler_t* scheduler);
 
-void sum_response(task_t *task, struct tracker* tracker);//helper for avg_response
 float avg_response(scheduler_t* scheduler);
 
 void show_metrics(scheduler_t* scheduler); //Outputs average turnaround and average response time of a process
