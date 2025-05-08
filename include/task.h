@@ -1,21 +1,44 @@
-// time allocated to each run in ms
-#define MIN_GRANULARITY 0.1
+#ifndef TASK_H
+#define TASK_H
 
 typedef struct task_metrics {
-    float arrival;
-    float first_run;
-    float duration;
-    float completion;
+    unsigned long arrival;
+    unsigned long first_run;
+    unsigned long duration;
+    unsigned long completion;
 } task_metrics_t;
 
 typedef struct task {
-    float v_runtime;
-    char (*run)(float, task_t*); // runs a task for 1 MIN_GRANULARITY. Returns 0 to keep running, 1 to be context switched, and 2 to complete.
+    unsigned long pid;
+    unsigned long v_runtime;
+    char (*run)(unsigned long, task_t*); // runs a task for 1 MIN_GRANULARITY. Returns 0 to keep running, 1 to be context switched, and 2 to complete.
     char nice;
     task_metrics_t metrics;
 } task_t;
 
+/*
+    Creates a task with the given pid, nice value, and run function.
+    @param pid The process ID of the task.
+    @param nice The nice value of the task.
+    @param run The function to run the task.
+    @return A pointer to the created task, or NULL if memory allocation fails.
+*/
+task_t *create_task(unsigned long pid, char nice, char (*run)(unsigned long, task_t*));
 
-int compare_tasks(task_t *t1, task_t *t2){
-    return t1->v_runtime > t2->v_runtime;
-}
+/*
+    Compares two tasks for ordering based on their v_runtime.
+    @param t1 The first task to compare.
+    @param t2 The second task to compare.
+    @return A negative value if t1 < t2, a positive value if t1 > t2, and 0 if they are equal.
+*/
+inline int compare_running_tasks(task_t *t1, task_t *t2);
+
+/*
+    Compares two tasks for ordering based on their arrival time.
+    @param t1 The first task to compare.
+    @param t2 The second task to compare.
+    @return A negative value if t1 < t2, a positive value if t1 > t2, and 0 if they are equal.
+*/
+inline int compare_scheduled_tasks(task_t *t1, task_t *t2);
+
+#endif // TASK_H

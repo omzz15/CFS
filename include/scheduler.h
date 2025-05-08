@@ -1,8 +1,13 @@
+#ifndef SCHEDULER_H
+#define SCHEDULER_H
+
 #include "task.h"
 #include "rbtree/rb.h"
 
-// in ms
-#define TIME_QUANTUM 20 
+// time quantum for the scheduler in ns (this is the maximum time the scheduler should take to run all tasks)
+#define TIME_QUANTUM 20,000,000 //20 ms
+// time allocated to each run in ns)
+#define MIN_GRANULARITY 1000 // 1 us
 
 const int nice_array[40] = { 
     /* -20 */ 88761, 71755, 56483, 46273, 36291,
@@ -18,27 +23,51 @@ const int nice_array[40] = {
 #define nice_to_weight(nice) nice_array[nice + 20]
 #define NICE_0 1024
 
-// code idea for using red black tree?
 typedef struct scheduler{
-    float runtime; // runtime counter
-    struct rb_tree *tree; // red black tree
+    unsigned long runtime; // runtime counter
+    struct rb_tree *running_tree; // tree for currently running tasks
+    struct rb_tree *schedule_tree; // tree for tasks to be scheduled
+    unsigned long quantum; // current time quantum (updated whenever a task is added or removed)
 } scheduler_t;
 
-//functions for scheduler:
+// functions for scheduler:
+/*
+    Initializes a scheduler by creating the red-black trees and setting the runtime to 0.
+    @param scheduler: pointer to the scheduler to be initialized
+*/
 void initialize(scheduler_t *scheduler);
+/*
+    Destroys the scheduler by freeing the red-black trees.
+    @param scheduler: pointer to the scheduler to be destroyed
+    @note This function will free memory allocated for the trees but NOT the scheduler itself or the tasks!
+*/
 void destroy(scheduler_t *scheduler);
-void add_task(scheduler_t *scheduler, task_t *task);
-
-void run_task();
+/*
+    Immediately adds a task to the scheduler.
+    @param scheduler: pointer to the scheduler to add the task to
+    @param task: pointer to the task to be added
+    @note This function will set the task's arrival time to the current runtime of the scheduler.
+*/
+void schedule_task_now(scheduler_t *scheduler, task_t *task);
+/*
+    Schedules a task to be run at a later time based on its arrival time.
+    @param scheduler: pointer to the scheduler to schedule the task in
+    @param task: pointer to the task to be scheduled
+*/
+void schedule_task(scheduler_t *scheduler, task_t *task);
+/*
+    Runs the task with the smallest v-runtime in the scheduler until its vruntime is more than the second smallest plus granularity or there is a new task to be scheduled.
+    @param scheduler: pointer to the scheduler to run the task in
+*/
+char run_task(scheduler_t *scheduler);
+/*
+    Gets the number of tasks left in the scheduler. This includes tasks that are currently running and tasks that are scheduled to run.
+*/
 int tasks_left(scheduler_t* scheduler);
 
+// functions for metrics:
 float avg_turnaround(scheduler_t* scheduler);
-
 float avg_response(scheduler_t* scheduler);
-
 void show_metrics(scheduler_t* scheduler); //Outputs average turnaround and average response time of a process
 
-
-
-
-
+#endif // SCHEDULER_H
