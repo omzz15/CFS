@@ -17,12 +17,20 @@ task_t* create_task(unsigned long pid, char nice, char (*run)(unsigned long, tas
     return task;
 }
 
-inline int compare_running_tasks(task_t *t1, task_t *t2)
+int compare_running_tasks(task_t *t1, task_t *t2)
 {
-    return t1->v_runtime - t2->v_runtime;
+    int diff = t1->v_runtime - t2->v_runtime;
+    if(diff)
+        return diff;
+    else
+        return t1->pid - t2->pid;
 }
 
-inline int compare_scheduled_tasks(task_t *t1, task_t *t2)
+int compare_scheduled_tasks(task_t *t1, task_t *t2)
 {
-    return t1->metrics.arrival - t2->metrics.arrival;
+    int diff = t1->metrics.arrival - t2->metrics.arrival;
+    if (diff)
+        return diff;
+    else
+        return t1->pid - t2->pid;   
 }

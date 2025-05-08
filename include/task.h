@@ -11,7 +11,7 @@ typedef struct task_metrics {
 typedef struct task {
     unsigned long pid;
     unsigned long v_runtime;
-    char (*run)(unsigned long, task_t*); // runs a task for 1 MIN_GRANULARITY. Returns 0 to keep running, 1 to be context switched, and 2 to complete.
+    char (*run)(unsigned long, struct task*); // runs a task for 1 MIN_GRANULARITY. Returns 0 to keep running, 1 to be context switched, and 2 to complete.
     char nice;
     task_metrics_t metrics;
 } task_t;
@@ -31,7 +31,7 @@ task_t *create_task(unsigned long pid, char nice, char (*run)(unsigned long, tas
     @param t2 The second task to compare.
     @return A negative value if t1 < t2, a positive value if t1 > t2, and 0 if they are equal.
 */
-inline int compare_running_tasks(task_t *t1, task_t *t2);
+int compare_running_tasks(task_t *t1, task_t *t2);
 
 /*
     Compares two tasks for ordering based on their arrival time.
@@ -39,6 +39,6 @@ inline int compare_running_tasks(task_t *t1, task_t *t2);
     @param t2 The second task to compare.
     @return A negative value if t1 < t2, a positive value if t1 > t2, and 0 if they are equal.
 */
-inline int compare_scheduled_tasks(task_t *t1, task_t *t2);
+int compare_scheduled_tasks(task_t *t1, task_t *t2);
 
 #endif // TASK_H

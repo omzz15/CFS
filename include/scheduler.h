@@ -5,20 +5,11 @@
 #include "rbtree/rb.h"
 
 // time quantum for the scheduler in ns (this is the maximum time the scheduler should take to run all tasks)
-#define TIME_QUANTUM 20,000,000 //20 ms
-// time allocated to each run in ns)
+#define TIME_QUANTUM 2000000 //2 ms
+// time allocated to each run in ns
 #define MIN_GRANULARITY 1000 // 1 us
 
-const int nice_array[40] = { 
-    /* -20 */ 88761, 71755, 56483, 46273, 36291,
-    /* -15 */ 29154, 23254, 18705, 14949, 11916,
-    /* -10 */ 9548, 7620, 6100, 4904, 3906,
-    /*  -5 */ 3121, 2501, 1991, 1586, 1277,
-    /*   0 */ 1024, 820, 655, 526, 423,
-    /*  +5 */ 335, 272, 215, 172, 137,
-    /* +10 */ 110, 87, 70, 56, 45,
-    /* +15 */ 36, 29, 23, 18, 15
-}; //Used for conversion of nice values to weights. Must add 20 to nice values to get correct index
+extern const int nice_array[40]; //Used for conversion of nice values to weights. Must add 20 to nice values to get correct index
 
 #define nice_to_weight(nice) nice_array[nice + 20]
 #define NICE_0 1024
@@ -64,6 +55,10 @@ char run_task(scheduler_t *scheduler);
     Gets the number of tasks left in the scheduler. This includes tasks that are currently running and tasks that are scheduled to run.
 */
 int tasks_left(scheduler_t* scheduler);
+/*
+    Runs all tasks in the scheduler until there are no tasks left in the schedule or run tree.
+*/
+void run_all_tasks(scheduler_t *scheduler);
 
 // functions for metrics:
 float avg_turnaround(scheduler_t* scheduler);

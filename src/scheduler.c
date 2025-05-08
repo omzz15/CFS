@@ -1,11 +1,22 @@
-#include <stdlib.h>
+#include <stdio.h>
 
 #include "scheduler.h"
 
+const int nice_array[40] = { 
+    /* -20 */ 88761, 71755, 56483, 46273, 36291,
+    /* -15 */ 29154, 23254, 18705, 14949, 11916,
+    /* -10 */ 9548, 7620, 6100, 4904, 3906,
+    /*  -5 */ 3121, 2501, 1991, 1586, 1277,
+    /*   0 */ 1024, 820, 655, 526, 423,
+    /*  +5 */ 335, 272, 215, 172, 137,
+    /* +10 */ 110, 87, 70, 56, 45,
+    /* +15 */ 36, 29, 23, 18, 15
+};
+
 void initialize(scheduler_t *scheduler)
 {
-    scheduler->running_tree = rb_create(compare_running_tasks, NULL);
-    scheduler->schedule_tree = rb_create(compare_scheduled_tasks, NULL);
+    scheduler->running_tree = rb_create((avl_comparison_func) compare_running_tasks, NULL);
+    scheduler->schedule_tree = rb_create((avl_comparison_func) compare_scheduled_tasks, NULL);
     scheduler->runtime = 0;
 }
 
@@ -58,11 +69,11 @@ char run_task(scheduler_t *scheduler)
     unsigned long max_vruntime = task->v_runtime + scheduler->quantum;
     
     char ret;
-    while(task->v_runtime < max_vruntime && (ret = task->run(scheduler->runtime, task)) == 0){
+    do {
         task->v_runtime += (MIN_GRANULARITY * NICE_0) / nice_to_weight(task->nice);
         task->metrics.duration += MIN_GRANULARITY;
         scheduler->runtime += MIN_GRANULARITY;
-    }
+    } while((ret = task->run(scheduler->runtime - MIN_GRANULARITY, task)) == 0 && task->v_runtime < max_vruntime);
 
     switch (ret)
     {
