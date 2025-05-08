@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "scheduler.h"
 
@@ -18,12 +19,18 @@ void initialize(scheduler_t *scheduler)
     scheduler->running_tree = rb_create((avl_comparison_func) compare_running_tasks, NULL);
     scheduler->schedule_tree = rb_create((avl_comparison_func) compare_scheduled_tasks, NULL);
     scheduler->runtime = 0;
+    scheduler->completed_tasks_count = 0;
+    scheduler->completed_tasks = NULL;
 }
 
 void destroy(scheduler_t *scheduler)
 {
-    rb_destroy(scheduler->running_tree, NULL);
-    rb_destroy(scheduler->schedule_tree, NULL);
+    rb_free(scheduler->running_tree);
+    rb_free(scheduler->schedule_tree);
+    for(unsigned int i = 0; i < scheduler->completed_tasks_count; i++){
+        free(scheduler->completed_tasks[i]);
+    }
+    free(scheduler->completed_tasks);
 }
 
 void add_task(scheduler_t *scheduler, task_t *task)
@@ -85,7 +92,12 @@ char run_task(scheduler_t *scheduler)
     case 2:
         // task is completed so update completion and schedular quantum
         task->metrics.completion = scheduler->runtime;
-        scheduler->quantum = TIME_QUANTUM / scheduler->running_tree->count;
+        if(scheduler->running_tree->count)
+            scheduler->quantum = TIME_QUANTUM / scheduler->running_tree->count;
+        scheduler->completed_tasks_count++;
+        // add the task to the completed tasks array
+        scheduler->completed_tasks = realloc(scheduler->completed_tasks, sizeof(task_t *) * scheduler->completed_tasks_count);
+        scheduler->completed_tasks[scheduler->completed_tasks_count - 1] = task;
         break;
     default:
         // invalid return value
@@ -121,42 +133,31 @@ void run_all_tasks(scheduler_t *scheduler)
     }
 }
 
-// struct tracker
-// {
-//     float total;
-//     unsigned int num;
-// };
 
-// void sum_turnaround(task_t *task, struct tracker *tracker)
-// {
-//     tracker->num++;
-//     tracker->total += task->metrics.completion - task->metrics.arrival;
-// }
+unsigned int avg_turnaround(scheduler_t *scheduler)
+{
+    unsigned long turnaround_sum = 0;
+    for(unsigned int i = 0; i < scheduler->completed_tasks_count; i++){
+        task_t *task = scheduler->completed_tasks[i];
+        turnaround_sum += task->metrics.completion - task->metrics.arrival;
+    }
+    return turnaround_sum / scheduler->completed_tasks_count;
+}
 
-// float avg_turnaround(scheduler_t *scheduler)
-// {
-//     struct tracker turnaround_tracker = {0};
-//     rb_walk(scheduler->tree, sum_turnaround, &turnaround_tracker);
-//     return turnaround_tracker.total / turnaround_tracker.num;
-// }
+unsigned int avg_response(scheduler_t *scheduler)
+{
+    unsigned long response_sum = 0;
+    for(unsigned int i = 0; i < scheduler->completed_tasks_count; i++){
+        task_t *task = scheduler->completed_tasks[i];
+        response_sum += task->metrics.first_run - task->metrics.arrival;
+    }
+    return response_sum / scheduler->completed_tasks_count;
+}
 
-// void sum_response(task_t *task, struct tracker *tracker)
-// {
-//     tracker->num++;
-//     tracker->total += task->metrics.first_run - task->metrics.arrival;
-// }
-
-// float avg_response(scheduler_t *scheduler)
-// {
-//     struct tracker response_tracker = {0};
-//     rb_walk(scheduler->tree, sum_response, &response_tracker);
-//     return response_tracker.total / response_tracker.num;
-// }
-
-// void show_metrics(scheduler_t *scheduler)
-// {
-//     float avg_t = avg_turnaround(scheduler);
-//     float avg_r = avg_response(scheduler);
-//     printf("Average Turnaround Time: %f \n", avg_t);
-//     printf("Average Response Time: %f \n", avg_r);
-// }
+void show_metrics(scheduler_t *scheduler)
+{
+    unsigned int avg_t = avg_turnaround(scheduler);
+    unsigned int avg_r = avg_response(scheduler);
+    printf("Average Turnaround Time: %u ns\n", avg_t);
+    printf("Average Response Time: %u ns\n", avg_r);
+}

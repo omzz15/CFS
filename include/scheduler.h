@@ -5,7 +5,7 @@
 #include "rbtree/rb.h"
 
 // time quantum for the scheduler in ns (this is the maximum time the scheduler should take to run all tasks)
-#define TIME_QUANTUM 2000000 //2 ms
+#define TIME_QUANTUM 200000 //200 us
 // time allocated to each run in ns
 #define MIN_GRANULARITY 1000 // 1 us
 
@@ -16,6 +16,8 @@ extern const int nice_array[40]; //Used for conversion of nice values to weights
 
 typedef struct scheduler{
     unsigned long runtime; // runtime counter
+    unsigned int completed_tasks_count; // number of completed tasks
+    task_t **completed_tasks; // array of all completed tasks (for metrics)
     struct rb_tree *running_tree; // tree for currently running tasks
     struct rb_tree *schedule_tree; // tree for tasks to be scheduled
     unsigned long quantum; // current time quantum (updated whenever a task is added or removed)
@@ -30,7 +32,7 @@ void initialize(scheduler_t *scheduler);
 /*
     Destroys the scheduler by freeing the red-black trees.
     @param scheduler: pointer to the scheduler to be destroyed
-    @note This function will free memory allocated for the trees but NOT the scheduler itself or the tasks!
+    @note This function will free memory allocated for the trees and tasks but NOT the scheduler itself!
 */
 void destroy(scheduler_t *scheduler);
 /*
@@ -61,8 +63,18 @@ int tasks_left(scheduler_t* scheduler);
 void run_all_tasks(scheduler_t *scheduler);
 
 // functions for metrics:
-float avg_turnaround(scheduler_t* scheduler);
-float avg_response(scheduler_t* scheduler);
+/*
+    Calculates the average turnaround time (time from arrival to completion) of all completed tasks.
+    @param scheduler: pointer to the scheduler to calculate the average turnaround time for
+    @return The average turnaround time in nanoseconds.
+*/
+unsigned int avg_turnaround(scheduler_t* scheduler);
+/*
+    Calculates the average response time (time from arrival to first run) of all completed tasks.
+    @param scheduler: pointer to the scheduler to calculate the average response time for
+    @return The average response time in nanoseconds.
+*/
+unsigned int avg_response(scheduler_t* scheduler);
 void show_metrics(scheduler_t* scheduler); //Outputs average turnaround and average response time of a process
 
 #endif // SCHEDULER_H

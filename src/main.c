@@ -6,7 +6,7 @@ char run_once(unsigned long runtime, task_t *task)
 {
     // Simulate running the task for 1 MIN_GRANULARITY
     printf("Running task %lu at runtime %lu\n", task->pid, runtime);
-    return 0;
+    return runtime > 2000000 ? 2 : 0;
 }
 
 int main(int argc, char *argv[])
@@ -28,6 +28,8 @@ int main(int argc, char *argv[])
 
     // Run all tasks
     run_all_tasks(&scheduler);
+
+    show_metrics(&scheduler);
 
     // Destroy the scheduler
     destroy(&scheduler);
