@@ -21,6 +21,7 @@ void initialize(scheduler_t *scheduler)
     scheduler->runtime = 0;
     scheduler->completed_tasks_count = 0;
     scheduler->completed_tasks = NULL;
+    scheduler->last_run_task = -1; // just some really big number
 }
 
 void destroy(scheduler_t *scheduler)
@@ -36,9 +37,9 @@ void destroy(scheduler_t *scheduler)
 void add_task(scheduler_t *scheduler, task_t *task)
 {
     rb_insert(scheduler->running_tree, task);
-    scheduler->quantum = TIME_QUANTUM / scheduler->running_tree->count;
-    if(scheduler->quantum < MIN_GRANULARITY){
-        scheduler->quantum = MIN_GRANULARITY;
+    scheduler->quantum = scheduler->time_quantum / scheduler->running_tree->count;
+    if(scheduler->quantum < scheduler->min_granularity){
+        scheduler->quantum = scheduler->min_granularity;
     }
 }
 
@@ -68,19 +69,22 @@ char run_task(scheduler_t *scheduler)
     // get and delete the task with the smallest v_runtime
     task_t *task =  rb_delete(scheduler->running_tree, get_min(&scheduler->running_tree->root)->data);
     
-    // update first run if not set
-    if(task->metrics.first_run == -1)
-        task->metrics.first_run = scheduler->runtime;
+    // update burst and first run if not set
+    if(scheduler->last_run_task != task->pid){
+        scheduler->last_run_task = task->pid;
+        if(task->metrics.bursts++ == 0)
+            task->metrics.first_run = scheduler->runtime;
+    }
 
     // get how long the task can run till
     unsigned long max_vruntime = task->v_runtime + scheduler->quantum;
     
     char ret;
     do {
-        task->v_runtime += (MIN_GRANULARITY * NICE_0) / nice_to_weight(task->nice);
-        task->metrics.duration += MIN_GRANULARITY;
-        scheduler->runtime += MIN_GRANULARITY;
-    } while((ret = task->run(scheduler->runtime - MIN_GRANULARITY, task)) == 0 && task->v_runtime < max_vruntime);
+        task->v_runtime += (scheduler->min_granularity * NICE_0) / nice_to_weight(task->nice);
+        task->metrics.duration += scheduler->min_granularity;
+        scheduler->runtime += scheduler->min_granularity;
+    } while((ret = task->run(scheduler->runtime - scheduler->min_granularity, task)) == 0 && task->v_runtime < max_vruntime);
 
     switch (ret)
     {
@@ -93,7 +97,7 @@ char run_task(scheduler_t *scheduler)
         // task is completed so update completion and schedular quantum
         task->metrics.completion = scheduler->runtime;
         if(scheduler->running_tree->count)
-            scheduler->quantum = TIME_QUANTUM / scheduler->running_tree->count;
+            scheduler->quantum = scheduler->time_quantum / scheduler->running_tree->count;
         scheduler->completed_tasks_count++;
         // add the task to the completed tasks array
         scheduler->completed_tasks = realloc(scheduler->completed_tasks, sizeof(task_t *) * scheduler->completed_tasks_count);
@@ -134,7 +138,7 @@ void run_all_tasks(scheduler_t *scheduler)
 }
 
 
-unsigned int avg_turnaround(scheduler_t *scheduler)
+unsigned long avg_turnaround(scheduler_t *scheduler)
 {
     unsigned long turnaround_sum = 0;
     for(unsigned int i = 0; i < scheduler->completed_tasks_count; i++){
@@ -144,7 +148,7 @@ unsigned int avg_turnaround(scheduler_t *scheduler)
     return turnaround_sum / scheduler->completed_tasks_count;
 }
 
-unsigned int avg_response(scheduler_t *scheduler)
+unsigned long avg_response(scheduler_t *scheduler)
 {
     unsigned long response_sum = 0;
     for(unsigned int i = 0; i < scheduler->completed_tasks_count; i++){
@@ -156,8 +160,8 @@ unsigned int avg_response(scheduler_t *scheduler)
 
 void show_metrics(scheduler_t *scheduler)
 {
-    unsigned int avg_t = avg_turnaround(scheduler);
-    unsigned int avg_r = avg_response(scheduler);
-    printf("Average Turnaround Time: %u ns\n", avg_t);
-    printf("Average Response Time: %u ns\n", avg_r);
+    unsigned long avg_t = avg_turnaround(scheduler);
+    unsigned long avg_r = avg_response(scheduler);
+    printf("Average Turnaround Time: %lu ns\n", avg_t);
+    printf("Average Response Time: %lu ns\n", avg_r);
 }

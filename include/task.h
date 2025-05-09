@@ -3,6 +3,7 @@
 
 typedef struct task_metrics {
     unsigned long arrival;
+    unsigned long bursts;
     unsigned long first_run;
     unsigned long duration;
     unsigned long completion;
@@ -12,6 +13,7 @@ typedef struct task {
     unsigned long pid;
     unsigned long v_runtime;
     char (*run)(unsigned long, struct task*); // runs a task for 1 MIN_GRANULARITY. Returns 0 to keep running, 1 to be context switched, and 2 to complete.
+    void *param;
     char nice;
     task_metrics_t metrics;
 } task_t;
@@ -23,7 +25,7 @@ typedef struct task {
     @param run The function to run the task.
     @return A pointer to the created task, or NULL if memory allocation fails.
 */
-task_t *create_task(unsigned long pid, char nice, char (*run)(unsigned long, task_t*));
+task_t *create_task(unsigned long pid, char nice, char (*run)(unsigned long, task_t*), void *param);
 
 /*
     Compares two tasks for ordering based on their v_runtime.

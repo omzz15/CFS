@@ -1,7 +1,7 @@
 #include "task.h"
 #include <stdlib.h>
 
-task_t* create_task(unsigned long pid, char nice, char (*run)(unsigned long, task_t*))
+task_t* create_task(unsigned long pid, char nice, char (*run)(unsigned long, task_t*), void *param)
 {
     task_t *task = malloc(sizeof(task_t));
     if (task == NULL)
@@ -9,11 +9,13 @@ task_t* create_task(unsigned long pid, char nice, char (*run)(unsigned long, tas
         return NULL;
     }
     task->pid = pid;
-    task->v_runtime = 0;
-    task->run = run;
     task->nice = nice;
-    task->metrics.arrival = -1;
-    task->metrics.first_run = -1;
+    task->run = run;
+    task->param = param;
+
+    task->v_runtime = 0;
+    task->metrics.bursts = 0;
+
     return task;
 }
 
